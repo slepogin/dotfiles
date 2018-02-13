@@ -14,11 +14,6 @@ let s:vim_plug_url='https://raw.githubusercontent.com/junegunn/vim-plug/master/p
 
 unlet! skip_defaults_vim
 silent! source $VIMRUNTIME/defaults.vim
-
-function! _download_file_linux()
-    silent let l:output = system('curl -fLo ~/test.file --create-dirs http://googleom')
-    return v:shell_error
-endfunction
 " }}}
 
 " Utility functions {{{
