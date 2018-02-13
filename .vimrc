@@ -1,4 +1,4 @@
-" vim: set foldmethod=marker foldlevel=0 nomodeline:
+" vim: set foldmethod=marker foldlevel=99 nomodeline:
 " Author: Nikita Slepogin
 " Date: 01.04.2017
 
@@ -14,27 +14,44 @@ unlet! skip_defaults_vim
 silent! source $VIMRUNTIME/defaults.vim
 " }}}
 
-" VIM-PLUG Install {{{
-unlet! vim_plug_installed
-if empty(glob('$HOME/.vim/autoload/plug.vim'))
+" Utility functions {{{
+fun! s:DownloadFileUnix(uri, dest)
+    silent let l:output = system("curl -fLo ".a:dest." --create-dirs ".a:uri)
+    return v:shell_error
+endfun
+
+fun! s:DownloadFileWindows(uri, dest)
+    silent let l:output = system('powershell -command "md '.fnamemodify(a:dest, ':p:h').'; iwr -Uri \"'.a:uri.'\" -OutFile \"'.fnamemodify(a:dest, ':p').'\""')
+    return v:shell_error
+endfun
+
+fun! DownloadFile(uri, dest)
     if has('unix')
-        silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        let l:result = s:DownloadFileUnix(a:uri, a:dest)
     elseif has('win32')
-        silent !powershell -command "md ~/.vim/autoload;
-        \ (New-Object Net.WebClient).DownloadFile(
-        \ \"https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim\",
-        \ $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath(
-        \ \"~\.vim\autoload\plug.vim\"))"
+        let l:result = s:DownloadFileWindows(a:uri, a:dest)
     endif
-    autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-    let vim_plug_installed=1
-endif
+    if l:result != 0
+        echoerr 'Failed to download "'.a:uri.'"'
+    endif
+    return l:result
+endfun
+
+fun! s:CheckInstallVimPlug(dest)
+    unlet! s:vim_plug_install
+    let l:uri = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
+    if empty(glob(a:dest, ':p'))
+        if DownloadFile(l:uri, a:dest) == 0
+            autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+            let s:vim_plug_install=1
+        endif
+    endif
+endfun
 " }}}
 
-" TODO: Add checks for shell commands : fzf, ctags, clang..
-
 " VIM-PLUG Plugins {{{
+call s:CheckInstallVimPlug('~/.vim/autoload/plug.vim')
+
 silent! if plug#begin()
 " Step 0 : Awesome file navigation [in progress]
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
@@ -62,7 +79,7 @@ call plug#end()
 endif
 
 " This is needed to avoid error messages at first start
-if exists('vim_plug_installed')
+if exists('s:vim_plug_install')
     finish
 endif
 " }}}
@@ -157,7 +174,7 @@ set nobackup
 set nowritebackup
 set noswapfile
 
-set clipboard^=unnamed,unnamedplus
+set clipboard=unnamedplus
 
 set exrc
 nnoremap <leader><leader> :Commands<CR>
