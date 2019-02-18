@@ -269,11 +269,6 @@ set splitbelow
 set modelines=2
 set synmaxcol=1000
 
-" For MacVim
-set noimd
-set imi=1
-set ims=-1
-
 set noerrorbells visualbell t_vb=
 
 hi! link cppStructure cppStatement
