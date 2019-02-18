@@ -59,13 +59,14 @@ silent! if plug#begin()
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/goyo.vim'
+Plug 'mhinz/vim-signify'
 
 Plug 'vimwiki/vimwiki', { 'branch': 'dev' }
 Plug 'wsdjeg/FlyGrep.vim'
 
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
-" Plug 'octol/vim-cpp-enhanced-highlight'
+Plug 'octol/vim-cpp-enhanced-highlight'
 
 " Colors
 Plug 'morhetz/gruvbox'
@@ -102,6 +103,9 @@ nnoremap <Space> <nop>
 let mapleader      = "\<Space>"
 let maplocalleader = "\<Space>"
 
+let g:signify_vcs_list = ['git']
+let g:signify_skip_filetype = { 'journal': 1 }
+
 " Plugin's settings {{{
 set statusline+=%{gutentags#statusline()}
 set statusline+=%{fugitive#statusline()}
@@ -132,6 +136,21 @@ let g:SuperTabDefaultCompletionType = "<c-n>"
 
 let g:vimwiki_list = [{'path': '~/Documents/Notes',
                        \ 'syntax': 'markdown', 'ext': '.md'}]
+
+let g:fzf_colors = {
+    \ 'fg':      ['fg', 'GruvboxGray'],
+    \ 'bg':      ['bg', 'Normal'],
+    \ 'hl':      ['fg', 'GruvboxRed'],
+    \ 'fg+':     ['fg', 'GruvboxGreen'],
+    \ 'bg+':     ['bg', 'GruvboxBg1'],
+    \ 'hl+':     ['fg', 'GruvboxRed'],
+    \ 'info':    ['fg', 'GruvboxOrange'],
+    \ 'prompt':  ['fg', 'GruvboxBlue'],
+    \ 'header':  ['fg', 'GruvboxBlue'],
+    \ 'pointer': ['fg', 'Error'],
+    \ 'marker':  ['fg', 'Error'],
+    \ 'spinner': ['fg', 'Statement'],
+\ }
 " }}}
 
 " Interface settings {{{
@@ -163,6 +182,7 @@ highlight lCursor guifg=NONE guibg=Cyan
 set foldenable
 set foldlevelstart=10
 set foldnestmax=10
+set foldmethod=syntax
 
 set keymap=russian-jcukenwin
 set spelllang=ru_ru,en_us
@@ -191,7 +211,6 @@ set noswapfile
 set clipboard=unnamedplus
 
 set exrc
-nnoremap <leader><leader> :Files<CR>
 
 set laststatus=2
 
@@ -220,6 +239,8 @@ set splitright
 set splitbelow
 
 set noerrorbells visualbell t_vb=
+
+hi! link cppStructure cppStatement
 " }}}
 
 " Autocmd {{{
@@ -244,6 +265,14 @@ fun! s:pysearch(pattern)
 endfun
 command! -nargs=1 Pysearch call s:pysearch(<f-args>)
 
+fun! s:projectgrep(pattern)
+    execute 'noautocmd vimgrep /' . a:pattern . '/j ./**/*'
+    execute 'copen'
+endfun
+command! -nargs=1 Pgrep call s:projectgrep(<f-args>)
+nmap <silent> g/ :Pgrep 
+nmap <silent> <leader>* :noautocmd vimgrep <cword> ./**/*<CR>
+
 " }}}
 
 " Mappings {{{
@@ -258,7 +287,9 @@ nnoremap <leader>v V`]
 
 nnoremap <C-p> :GFiles<CR>
 nnoremap <leader>b :Buffers<CR>
-nnoremap <leader><leader> :Commands<CR>
+nnoremap <leader><leader> :Buffers<CR>
+nnoremap <tab> <C-W><C-W>
+
 
 fun! s:BetterExplore()
     if exists(':Rexplore')
@@ -293,13 +324,13 @@ vnoremap <C-Q>     <esc>
 nnoremap <Leader>q :q<cr>
 nnoremap <Leader>Q :qa!<cr>
 
+nnoremap [e :ALEPrevious<cr>
+nnoremap ]e :ALENext<cr>
+
 nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
 nnoremap <C-L> <C-W><C-L>
 nnoremap <C-H> <C-W><C-H>
-
-nnoremap <tab> %
-vnoremap <tab> %
 
 function! s:colors(...)
   return filter(map(filter(split(globpath(&rtp, 'colors/*.vim'), "\n"),
