@@ -54,7 +54,7 @@ endfun
 " VIM-PLUG Plugins {{{
 call s:CheckInstallVimPlug('~/.vim/autoload/plug.vim')
 
-silent! if plug#begin()
+silent! if plug#begin('~/.vim/plugged')
 " Step 0 : Awesome file navigation [in progress]
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
@@ -82,6 +82,7 @@ Plug 'tpope/vim-fugitive'
 Plug 'vim-python/python-syntax'
 Plug 'dccmx/google-style.vim'
 Plug 'davidhalter/jedi-vim'
+Plug 'python-mode/python-mode', { 'branch': 'develop' }
 
 " Cpp IDE -> Install clang!
 call plug#end()
@@ -93,11 +94,16 @@ if exists('s:vim_plug_install')
 endif
 " }}}
 
-if has('termguicolors')
-  " let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
-  " let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
-  " set termguicolors
-endif
+
+" Basic settings {{{
+
+" FIXME:Cool colors but doesn't work with Terminal.app
+" Which is faster then iTerm :(
+" if has('termguicolors')
+"   set termguicolors
+"   let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
+"   let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
+" endif
 
 nnoremap <Space> <nop>
 let mapleader      = "\<Space>"
@@ -107,6 +113,10 @@ let g:signify_vcs_list = ['git']
 let g:signify_skip_filetype = { 'journal': 1 }
 
 " Plugin's settings {{{
+augroup vimrc
+  autocmd!
+augroup END
+
 set statusline+=%{gutentags#statusline()}
 set statusline+=%{fugitive#statusline()}
 " let g:airline_powerline_fonts=1
@@ -129,11 +139,8 @@ let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
 
 " Use completor.vim instead
 let g:jedi#completions_enabled = 0
-
 let g:python_highlight_all = 1
-
 let g:SuperTabDefaultCompletionType = "<c-n>"
-
 let g:vimwiki_list = [{'path': '~/Documents/Notes',
                        \ 'syntax': 'markdown', 'ext': '.md'}]
 
@@ -161,23 +168,27 @@ if has('gui_running')
     else
         set guifont=Input\ Mono\ 12,Monospace\ 12
     endif
-else
-    " Settings for ConEmu (Windows Term Emulator)
-    if !empty($CONEMUBUILD)
-        set term=pcansi
-        set t_Co=256
-        let &t_AB="\e[48;5;%dm"
-        let &t_AF="\e[38;5;%dm"
-    endif
 endif
-syntax on
-set background=dark
-colorscheme gruvbox
+
+" Settings for ConEmu (Windows Term Emulator)
+if !empty($CONEMUBUILD)
+    set term=pcansi
+    set t_Co=256
+    let &t_AB="\e[48;5;%dm"
+    let &t_AF="\e[38;5;%dm"
+endif
+
 " Highlight diff language input cursor with other color
 highlight lCursor guifg=NONE guibg=Cyan
+
+syntax on
+colorscheme gruvbox
+set background=dark
 " }}}
 
 " Basic settings {{{
+
+set nostartofline
 
 set foldenable
 set foldlevelstart=10
@@ -194,28 +205,45 @@ set number
 set ruler
 set relativenumber
 
+set timeoutlen=500
 set tabstop=8
 set softtabstop=4
 set shiftwidth=4
-set smarttab
-set expandtab
-set autoindent
+set smarttab expandtab
+set autoindent smartindent
+set showcmd
+set virtualedit=block
 
 set cursorline
 set showmatch
 
-set nobackup
-set nowritebackup
-set noswapfile
+" Enable backups and swap just in case..
+set backupdir=/tmp//,.
+set directory=/tmp//,.
+set undodir=/tmp//,.
 
-set clipboard=unnamedplus
+set clipboard=unnamed
+set completeopt=menuone,preview
+" No need in Import when tags completion used
+set complete-=i
+
+set textwidth=0
+" This is a good half screen limit for any file
+set colorcolumn=80
+
+" Don't break a line after one-letter word.
+" Remove comment leader when joining lines
+set formatoptions+=1j
+
+let &showbreak = '↳ '
+set breakindent
+set breakindentopt=sbr
 
 set exrc
 
 set laststatus=2
 
-set ignorecase
-set smartcase
+set ignorecase smartcase
 set gdefault
 set incsearch
 set showmatch
@@ -223,11 +251,11 @@ set hlsearch
 set iminsert=0
 set imsearch=0
 
-set listchars=tab:→…,trail:•
-set list
+set list listchars=tab:→…,trail:•
 
-set wildmenu
-set wildmode=full
+set wildmenu wildmode=full
+
+set shortmess=aIT
 
 set ttyfast ttymouse=xterm2 lazyredraw ttyscroll=3
 
@@ -237,6 +265,14 @@ set hidden
 
 set splitright
 set splitbelow
+
+set modelines=2
+set synmaxcol=1000
+
+" For MacVim
+set noimd
+set imi=1
+set ims=-1
 
 set noerrorbells visualbell t_vb=
 
@@ -299,6 +335,8 @@ fun! s:BetterExplore()
     endif
 endfun
 command! BetterExplore call s:BetterExplore()
+
+nnoremap <leader><leader> :Files<CR>
 
 nnoremap <F2> :BetterExplore<CR>
 nnoremap <F3> :50Vex!<CR>
