@@ -29,6 +29,9 @@ nnoremap [d :action QuickImplementations<cr>
 nnoremap ]d :action QuickImplementations<cr>
 
 nnoremap gcc :action CommentByLineComment<cr>
+vnoremap gcc :action CommentByLineComment<cr>
+nnoremap / :action Find<cr>
+nnoremap g/ /
 
 nnoremap <leader>ff :action FindInPath<cr>
 nnoremap <leader>fu :action FindUsages<cr>

@@ -9,9 +9,6 @@
 language C
 set encoding=UTF-8
 set runtimepath=$HOME/.vim,$VIMRUNTIME
-
-unlet! skip_defaults_vim
-silent! source $VIMRUNTIME/defaults.vim
 " }}}
 
 " Utility functions {{{
@@ -21,7 +18,9 @@ fun! s:DownloadFileUnix(uri, dest)
 endfun
 
 fun! s:DownloadFileWindows(uri, dest)
-    silent let l:output = system('powershell -command "md '.fnamemodify(a:dest, ':p:h').'; iwr -Uri \"'.a:uri.'\" -OutFile \"'.fnamemodify(a:dest, ':p').'\""')
+    silent let l:output = system('powershell -command "
+        \ md '.fnamemodify(a:dest, ':p:h').';
+        \ iwr -Uri \"'.a:uri.'\" -OutFile \"'.fnamemodify(a:dest, ':p').'\""')
     return v:shell_error
 endfun
 
@@ -65,7 +64,6 @@ Plug 'vimwiki/vimwiki', { 'branch': 'dev' }
 Plug 'wsdjeg/FlyGrep.vim'
 
 Plug 'vim-airline/vim-airline'
-Plug 'vim-airline/vim-airline-themes'
 Plug 'octol/vim-cpp-enhanced-highlight'
 
 " Colors
@@ -73,18 +71,18 @@ Plug 'morhetz/gruvbox'
 
 " Basically IDE
 Plug 'ludovicchabant/vim-gutentags'
-Plug 'w0rp/ale'
-Plug 'maralla/completor.vim'
 Plug 'ervandew/supertab'
 Plug 'tpope/vim-fugitive'
 
 " Python IDE
 Plug 'vim-python/python-syntax'
 Plug 'dccmx/google-style.vim'
-Plug 'davidhalter/jedi-vim'
-Plug 'python-mode/python-mode', { 'branch': 'develop' }
 
-" Cpp IDE -> Install clang!
+" FIXME: Kinda slow...
+" Plug 'python-mode/python-mode', { 'branch': 'develop' }
+
+Plug 'w0rp/ale'
+Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
 call plug#end()
 endif
 
@@ -97,13 +95,12 @@ endif
 
 " Basic settings {{{
 
-" FIXME:Cool colors but doesn't work with Terminal.app
-" Which is faster then iTerm :(
-" if has('termguicolors')
-"   set termguicolors
-"   let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
-"   let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
-" endif
+" Don't use termguicolors with Terminal.app
+if has('termguicolors') && $TERM_PROGRAM != "Apple_Terminal"
+  set termguicolors
+  let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
+  let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
+endif
 
 nnoremap <Space> <nop>
 let mapleader      = "\<Space>"
@@ -117,10 +114,12 @@ augroup vimrc
   autocmd!
 augroup END
 
-set statusline+=%{gutentags#statusline()}
-set statusline+=%{fugitive#statusline()}
-" let g:airline_powerline_fonts=1
 let g:airline_theme='gruvbox'
+let g:airline#extensions#keymap#enabled = 0
+let g:airline#extensions#ale#enabled = 1
+
+let g:gruvbox_contrast_dark = 'soft'
+
 let g:gutentags_cache_dir='~/.cache/tags'
 
 let g:netrw_banner = 0
@@ -131,18 +130,20 @@ let g:netrw_winsize = -25
 let g:netrw_keepdir = 0
 let g:netrw_sort_sequence = '[\/]$,*'
 
+let g:ale_set_highlights = 0
 let g:ale_sign_column_always = 1
-let g:airline#extensions#ale#enabled = 1
-let g:ale_echo_msg_error_str = 'E'
-let g:ale_echo_msg_warning_str = 'W'
 let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
+let g:ale_sign_error = '•'
+let g:ale_sign_warning = '•'
+let g:ale_echo_msg_error_str =  '✹ Error'
+let g:ale_echo_msg_warning_str = '⚠ Warning'
 
-" Use completor.vim instead
-let g:jedi#completions_enabled = 0
 let g:python_highlight_all = 1
+
 let g:SuperTabDefaultCompletionType = "<c-n>"
+
 let g:vimwiki_list = [{'path': '~/Documents/Notes',
-                       \ 'syntax': 'markdown', 'ext': '.md'}]
+                      \'syntax': 'markdown', 'ext': '.md'}]
 
 let g:fzf_colors = {
     \ 'fg':      ['fg', 'GruvboxGray'],
@@ -178,12 +179,14 @@ if !empty($CONEMUBUILD)
     let &t_AF="\e[38;5;%dm"
 endif
 
+
+" syntax on " NOTE: Already in defaults
+set background=dark
+" NOTE: Setting background or syntax after color results in twice sourcing
+colorscheme gruvbox
+"
 " Highlight diff language input cursor with other color
 highlight lCursor guifg=NONE guibg=Cyan
-
-syntax on
-colorscheme gruvbox
-set background=dark
 " }}}
 
 " Basic settings {{{
@@ -279,8 +282,6 @@ augroup vimrc
     autocmd!
     autocmd FileType python,rst,c,cpp highlight Excess ctermbg=DarkGrey guibg=Black
     autocmd FileType python,rst,c,cpp match Excess /\%81v.*/
-    autocmd FileType python,rst,c,cpp set nowrap
-    autocmd FileType python,rst,c,cpp set colorcolumn=80
     autocmd GUIEnter * set visualbell t_vb=
     autocmd FocusLost * if expand('%') != '' | update | endif
     autocmd BufWritePost _vimrc,.vimrc source %
@@ -296,12 +297,7 @@ fun! s:pysearch(pattern)
 endfun
 command! -nargs=1 Pysearch call s:pysearch(<f-args>)
 
-fun! s:projectgrep(pattern)
-    execute 'noautocmd vimgrep /' . a:pattern . '/j ./**/*'
-    execute 'copen'
-endfun
-command! -nargs=1 Pgrep call s:projectgrep(<f-args>)
-nmap <silent> g/ :Pgrep 
+nmap <silent> g/ :FlyGrep<CR>
 nmap <silent> <leader>* :noautocmd vimgrep <cword> ./**/*<CR>
 
 " }}}
@@ -419,5 +415,30 @@ command! -bang Profile call s:profile(<bang>0)
 command! -bang -nargs=? -complete=dir Files
   \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
 
+" ----------------------------------------------------------------------------
+" AutoSave
+" ----------------------------------------------------------------------------
+function! s:autosave(enable)
+  augroup autosave
+    autocmd!
+    if a:enable
+      autocmd TextChanged,InsertLeave <buffer>
+            \  if empty(&buftype) && !empty(bufname(''))
+            \|   silent! update
+            \| endif
+    endif
+  augroup END
+endfunction
+
+command! -bang AutoSave call s:autosave(<bang>1)
+
+" Convenient command to see the difference between the current buffer and the
+" file it was loaded from, thus the changes you made.
+" Only define it when not defined already.
+" Revert with: ":delcommand DiffOrig".
+if !exists(":DiffOrig")
+  command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
+    \ | wincmd p | diffthis
+endif
 " }}}
 
