@@ -6,7 +6,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1
 DOTFILES=$(pwd)
 
 # Configs
-for rc in *rc; do
+for rc in *{rc,conf}; do
   [ -e ~/."$rc" ] && mv -v ~/."$rc" ~/."$rc".old
   ln -sfv "$DOTFILES/$rc" ~/."$rc"
 done
