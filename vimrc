@@ -59,6 +59,7 @@ Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/goyo.vim'
 Plug 'mhinz/vim-signify'
+Plug 'arcticicestudio/nord-vim'
 
 Plug 'vimwiki/vimwiki', { 'branch': 'dev' }
 Plug 'wsdjeg/FlyGrep.vim'
@@ -114,7 +115,7 @@ augroup vimrc
   autocmd!
 augroup END
 
-let g:airline_theme='gruvbox'
+let g:airline_theme='nord'
 let g:airline#extensions#keymap#enabled = 0
 let g:airline#extensions#ale#enabled = 1
 
@@ -183,7 +184,7 @@ endif
 " syntax on " NOTE: Already in defaults
 set background=dark
 " NOTE: Setting background or syntax after color results in twice sourcing
-colorscheme gruvbox
+colorscheme nord
 "
 " Highlight diff language input cursor with other color
 highlight lCursor guifg=NONE guibg=Cyan
