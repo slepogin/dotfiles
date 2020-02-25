@@ -2,97 +2,116 @@
 " Author: Nikita Slepogin
 " Date: 01.04.2017
 
-" Load vim defaults {{{
 " Where is a bug in Windows.
 " If you change encoding to UTF8 you should repopulate runtimepath.
-" I prefer using .vim directory in both windows and linux.
 language C
-set encoding=UTF-8
+set encoding=utf-8
 set runtimepath=$HOME/.vim,$VIMRUNTIME
-" }}}
+set nocompatible
 
-" Utility functions {{{
-fun! s:DownloadFileUnix(uri, dest)
-    silent let l:output = system("curl -fLo ".a:dest." --create-dirs ".a:uri)
-    return v:shell_error
-endfun
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
 
-fun! s:DownloadFileWindows(uri, dest)
-    silent let l:output = system('powershell -command "
-        \ md '.fnamemodify(a:dest, ':p:h').';
-        \ iwr -Uri \"'.a:uri.'\" -OutFile \"'.fnamemodify(a:dest, ':p').'\""')
-    return v:shell_error
-endfun
-
-fun! DownloadFile(uri, dest)
-    if has('unix')
-        let l:result = s:DownloadFileUnix(a:uri, a:dest)
-    elseif has('win32')
-        let l:result = s:DownloadFileWindows(a:uri, a:dest)
-    endif
-    if l:result != 0
-        echoerr 'Failed to download "'.a:uri.'"'
-    endif
-    return l:result
-endfun
-
-" TODO: Rewrite it with just git clone plug.vim! It's crossplatform anyway!
-
-fun! s:CheckInstallVimPlug(dest)
-    unlet! s:vim_plug_install
-    let l:uri = "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
-    if empty(glob(a:dest, ':p'))
-        if DownloadFile(l:uri, a:dest) == 0
-            autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-            let s:vim_plug_install=1
-        endif
-    endif
-endfun
-" }}}
+let mapleader      = "\<Space>"
+let maplocalleader = "\<Space>"
 
 " VIM-PLUG Plugins {{{
-call s:CheckInstallVimPlug('~/.vim/autoload/plug.vim')
 
 silent! if plug#begin('~/.vim/plugged')
-" Step 0 : Awesome file navigation [in progress]
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
-Plug 'junegunn/goyo.vim'
-Plug 'mhinz/vim-signify'
-Plug 'arcticicestudio/nord-vim'
-
-Plug 'vimwiki/vimwiki', { 'branch': 'dev' }
-Plug 'wsdjeg/FlyGrep.vim'
-
-Plug 'vim-airline/vim-airline'
-Plug 'octol/vim-cpp-enhanced-highlight'
-
 " Colors
 Plug 'morhetz/gruvbox'
+Plug 'chriskempson/base16-vim'
+Plug 'arcticicestudio/nord-vim'
 
-" Basically IDE
-Plug 'ludovicchabant/vim-gutentags'
-Plug 'ervandew/supertab'
+" Git
+Plug 'mhinz/vim-signify'
+  let g:signify_vcs_list = ['git']
+  let g:signify_skip_filetype = { 'journal': 1 }
+  let g:signify_sign_add          = '│'
+  let g:signify_sign_change       = '│'
+  let g:signify_sign_changedelete = '│'
 Plug 'tpope/vim-fugitive'
+  nmap     <Leader>g :Gstatus<CR>gg<c-n>
+  nnoremap <Leader>d :Gdiff<CR>
 
-" Python IDE
+" Edit
+Plug 'tpope/vim-commentary'
+  map  <Leader>c  <Plug>Commentary
+  nmap <Leader>cc <Plug>CommentaryLine
+Plug 'mbbill/undotree', { 'on': 'UndotreeToggle' }
+  let g:undotree_WindowLayout = 2
+  nnoremap U :UndotreeToggle<CR>
+Plug 'vim-scripts/ReplaceWithRegister'
+Plug 'junegunn/goyo.vim'
+
+" Navigate
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
+Plug 'justinmk/vim-gtfo'
+Plug 'wsdjeg/FlyGrep.vim', { 'on': 'FlyGrep'}
+Plug 'preservim/nerdtree', { 'on': 'NERDTreeToggle' }
+  augroup nerd_loader
+    autocmd!
+    autocmd VimEnter * silent! autocmd! FileExplorer
+    autocmd BufEnter,BufNew *
+          \  if isdirectory(expand('<amatch>'))
+          \|   call plug#load('nerdtree')
+          \|   execute 'autocmd! nerd_loader'
+          \| endif
+  augroup END
+Plug 'majutsushi/tagbar', { 'on': 'TagbarToggle' }
+  let g:tagbar_sort = 0
+  nnoremap T :TagbarToggle<CR>
+Plug 'Yggdroot/indentLine', { 'on': 'IndentLinesEnable' }
+  autocmd! User indentLine doautocmd indentLine Syntax
+  let g:indentLine_color_term = 239
+  let g:indentLine_color_gui = '#616161'
+Plug 'junegunn/vim-slash'
+Plug 'christoomey/vim-tmux-navigator'
+
+" Python
 Plug 'vim-python/python-syntax'
 Plug 'dccmx/google-style.vim'
-
 " FIXME: Kinda slow...
 " Plug 'python-mode/python-mode', { 'branch': 'develop' }
 
-Plug 'w0rp/ale'
-Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
-call plug#end()
-endif
+" Golang
+Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 
-" This is needed to avoid error messages at first start
-if exists('s:vim_plug_install')
-    finish
+" C/C++
+Plug 'octol/vim-cpp-enhanced-highlight'
+
+
+" NOTE: Figure out how to lazy load
+" Plug 'vimwiki/vimwiki', { 'branch': 'dev'}
+Plug 'mrk21/yaml-vim'
+Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
+" Basically IDE
+Plug 'ludovicchabant/vim-gutentags'
+Plug 'ervandew/supertab'
+
+" Testing
+" Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+" Lint
+Plug 'w0rp/ale'
+  let g:ale_lint_delay = 1000
+  nmap ]a <Plug>(ale_next_wrap)
+  nmap [a <Plug>(ale_previous_wrap)
+Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
+" Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+
+call plug#end()
 endif
 " }}}
 
+" syntax on " NOTE: Already in defaults
+" set background=dark
+" NOTE: Setting background or syntax after color results in twice sourcing
+silent! colorscheme nord
 
 " Basic settings {{{
 
@@ -103,22 +122,8 @@ if has('termguicolors') && $TERM_PROGRAM != "Apple_Terminal"
   let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
 endif
 
-nnoremap <Space> <nop>
-let mapleader      = "\<Space>"
-let maplocalleader = "\<Space>"
-
-let g:signify_vcs_list = ['git']
-let g:signify_skip_filetype = { 'journal': 1 }
 
 " Plugin's settings {{{
-augroup vimrc
-  autocmd!
-augroup END
-
-let g:airline_theme='nord'
-let g:airline#extensions#keymap#enabled = 0
-let g:airline#extensions#ale#enabled = 1
-
 let g:gruvbox_contrast_dark = 'soft'
 
 let g:gutentags_cache_dir='~/.cache/tags'
@@ -131,13 +136,13 @@ let g:netrw_winsize = -25
 let g:netrw_keepdir = 0
 let g:netrw_sort_sequence = '[\/]$,*'
 
-let g:ale_set_highlights = 0
-let g:ale_sign_column_always = 1
-let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
-let g:ale_sign_error = '•'
-let g:ale_sign_warning = '•'
-let g:ale_echo_msg_error_str =  '✹ Error'
-let g:ale_echo_msg_warning_str = '⚠ Warning'
+" let g:ale_set_highlights = 0
+" let g:ale_sign_column_always = 1
+" let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
+" let g:ale_sign_error = '•'
+" let g:ale_sign_warning = '•'
+" let g:ale_echo_msg_error_str =  '✹ Error'
+" let g:ale_echo_msg_warning_str = '⚠ Warning'
 
 let g:python_highlight_all = 1
 
@@ -181,11 +186,25 @@ if !empty($CONEMUBUILD)
 endif
 
 
+function! s:statusline_expr()
+  let mod = "%{&modified ? '[+] ' : !&modifiable ? '[x] ' : ''}"
+  let ro  = "%{&readonly ? '[RO] ' : ''}"
+  let ft  = "%{len(&filetype) ? '['.&filetype.'] ' : ''}"
+  let fug = "%{exists('g:loaded_fugitive') ? fugitive#statusline() : ''}"
+  let sep = ' %= '
+  let pos = ' %-12(%l : %c%V%) '
+  let pct = ' %P'
+
+  return '[%n] %F %<'.mod.ro.ft.fug.sep.pos.'%*'.pct
+endfunction
+let &statusline = s:statusline_expr()
+
+
 " syntax on " NOTE: Already in defaults
-set background=dark
+" set background=dark
 " NOTE: Setting background or syntax after color results in twice sourcing
-colorscheme nord
-"
+" silent! colorscheme nord
+
 " Highlight diff language input cursor with other color
 highlight lCursor guifg=NONE guibg=Cyan
 " }}}
@@ -200,14 +219,15 @@ set foldnestmax=10
 set foldmethod=syntax
 
 set keymap=russian-jcukenwin
+set langmap=ФИСВУАПРШОЛДЬТЩЗЙКЫЕГМЦЧНЯ;ABCDEFGHIJKLMNOPQRSTUVWXYZ,фисвуапршолдьтщзйкыегмцчня;abcdefghijklmnopqrstuvwxyz
+set iminsert=0
+set imsearch=-1
 set spelllang=ru_ru,en_us
 
 set fileformats=unix,dos,mac
 set modeline
-
 set number
 set ruler
-set relativenumber
 
 set timeoutlen=500
 set tabstop=8
@@ -252,16 +272,20 @@ set gdefault
 set incsearch
 set showmatch
 set hlsearch
-set iminsert=0
-set imsearch=0
 
+set backspace=indent,eol,start
 set list listchars=tab:→…,trail:•
 
 set wildmenu wildmode=full
 
 set shortmess=aIT
 
-set ttyfast ttymouse=xterm2 lazyredraw ttyscroll=3
+set ttyfast
+set lazyredraw
+if !has('nvim')
+  set ttymouse=xterm2
+  set ttyscroll=3
+endif
 
 set mouse=a
 set autoread
@@ -318,19 +342,17 @@ nnoremap <leader>b :Buffers<CR>
 nnoremap <leader><leader> :Buffers<CR>
 nnoremap <tab> <C-W><C-W>
 
-
-fun! s:BetterExplore()
-    if exists(':Rexplore')
-        execute 'Rexplore'
-    else
-        execute 'Explore'
-    endif
-endfun
-command! BetterExplore call s:BetterExplore()
+" ----------------------------------------------------------------------------
+" Markdown headings
+" ----------------------------------------------------------------------------
+nnoremap <leader>1 m`yypVr=``
+nnoremap <leader>2 m`yypVr-``
+nnoremap <leader>3 m`^i### <esc>``4l
+nnoremap <leader>4 m`^i#### <esc>``5l
+nnoremap <leader>5 m`^i##### <esc>``6l
 
 nnoremap <leader><leader> :Files<CR>
 
-nnoremap <F2> :BetterExplore<CR>
 nnoremap <F3> :50Vex!<CR>
 vnoremap <F4> :<C-U>1,'<-1:delete<CR>:'>+1,$:delete<CR>
 nnoremap <F10> :Goyo<CR>
@@ -361,6 +383,7 @@ nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
 nnoremap <C-L> <C-W><C-L>
 nnoremap <C-H> <C-W><C-H>
+inoremap <C-U> <C-G>u<C-U>
 
 function! s:colors(...)
   return filter(map(filter(split(globpath(&rtp, 'colors/*.vim'), "\n"),
