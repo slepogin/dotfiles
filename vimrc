@@ -4,10 +4,16 @@
 
 " Where is a bug in Windows.
 " If you change encoding to UTF8 you should repopulate runtimepath.
-language C
-set encoding=utf-8
-set runtimepath=$HOME/.vim,$VIMRUNTIME
-set nocompatible
+" language C
+" set encoding=utf-8
+" set runtimepath=$HOME/.vim,$VIMRUNTIME
+
+" Normally `:set nocp` is not needed, because it is done automatically
+if &compatible
+  " `:set nocp` has many side effects. Therefore this should be done
+  " only when 'compatible' is set.
+  set nocompatible
+endif
 
 if empty(glob('~/.vim/autoload/plug.vim'))
   silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
@@ -18,18 +24,26 @@ endif
 let mapleader      = "\<Space>"
 let maplocalleader = "\<Space>"
 
+let g:loaded_matchit = 1 " Don't need it
+let g:loaded_gzip = 1 " Gzip is pointless
+let g:loaded_zipPlugin = 1 " zip is also pointless
+let g:loaded_logipat = 1 " No logs
+let g:loaded_2html_plugin = 1 " Disable 2html
+let g:loaded_rrhelper = 1 " I don't use r
+let g:loaded_getscriptPlugin = 1 " Dont need it
+let g:loaded_tarPlugin = 1 " Nope
+
 " VIM-PLUG Plugins {{{
 
 silent! if plug#begin('~/.vim/plugged')
 " Colors
-Plug 'morhetz/gruvbox'
-Plug 'chriskempson/base16-vim'
+" Plug 'morhetz/gruvbox'
+" Plug 'chriskempson/base16-vim'
 Plug 'arcticicestudio/nord-vim'
 
 " Git
 Plug 'mhinz/vim-signify'
   let g:signify_vcs_list = ['git']
-  let g:signify_skip_filetype = { 'journal': 1 }
   let g:signify_sign_add          = '│'
   let g:signify_sign_change       = '│'
   let g:signify_sign_changedelete = '│'
@@ -39,69 +53,94 @@ Plug 'tpope/vim-fugitive'
 
 " Edit
 Plug 'tpope/vim-commentary'
-  map  <Leader>c  <Plug>Commentary
-  nmap <Leader>cc <Plug>CommentaryLine
+  " xmap  <c-\/>  <Plug>Commentary
+  " nmap  <c-\/>  <Plug>CommentaryLine
 Plug 'mbbill/undotree', { 'on': 'UndotreeToggle' }
   let g:undotree_WindowLayout = 2
   nnoremap U :UndotreeToggle<CR>
-Plug 'vim-scripts/ReplaceWithRegister'
-Plug 'junegunn/goyo.vim'
-
-" Navigate
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
-Plug 'justinmk/vim-gtfo'
-Plug 'wsdjeg/FlyGrep.vim', { 'on': 'FlyGrep'}
-Plug 'preservim/nerdtree', { 'on': 'NERDTreeToggle' }
-  augroup nerd_loader
-    autocmd!
-    autocmd VimEnter * silent! autocmd! FileExplorer
-    autocmd BufEnter,BufNew *
-          \  if isdirectory(expand('<amatch>'))
-          \|   call plug#load('nerdtree')
-          \|   execute 'autocmd! nerd_loader'
-          \| endif
-  augroup END
-Plug 'majutsushi/tagbar', { 'on': 'TagbarToggle' }
-  let g:tagbar_sort = 0
-  nnoremap T :TagbarToggle<CR>
 Plug 'Yggdroot/indentLine', { 'on': 'IndentLinesEnable' }
   autocmd! User indentLine doautocmd indentLine Syntax
   let g:indentLine_color_term = 239
   let g:indentLine_color_gui = '#616161'
+Plug 'vim-scripts/ReplaceWithRegister'
+Plug 'jiangmiao/auto-pairs'
+Plug 'junegunn/goyo.vim'
+
+" Navigate and complete
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim'
+Plug 'justinmk/vim-gtfo'
+let g:netrw_banner = 0
+let g:netrw_liststyle = 3
+let g:netrw_browse_split = 0
+let g:netrw_winsize = -25
+let g:netrw_sort_sequence = '[\/]$,*'
+let g:netrw_list_hide='.*\.git/$,'.netrw_gitignore#Hide()
+nnoremap <silent> - :Explore<cr>
+if has('nvim')
+    augroup netrw_setup
+        autocmd!
+        autocmd FileType netrw setl bufhidden=wipe
+        autocmd FileType netrw nnoremap <buffer> Q :Rexplore<CR>
+"        autocmd FileType netrw setlocal cursorline winhighlight=Normal:Tabline fillchars=vert:\ 
+    augroup END
+endif
+
+if has('nvim-0.5')
+    Plug 'neovim/nvim-lsp'
+    " Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+    " Plug 'Shougo/deoplete-lsp'
+      let g:python_host_prog = expand('~/.pyenv/versions/2.7.17/envs/neovim2.7/bin/python')
+      let g:python3_host_prog = expand('~/.pyenv/versions/3.6.6/envs/neovim/bin/python')
+      let g:deoplete#enable_at_startup = 1
+    Plug 'ervandew/supertab'
+    Plug 'w0rp/ale'
+      let g:ale_lint_delay = 1000
+      nmap ]a <Plug>(ale_next_wrap)
+      nmap [a <Plug>(ale_previous_wrap)
+
+endif
+
+Plug 'majutsushi/tagbar', { 'on': 'TagbarToggle' }
+  let g:tagbar_sort = 1
+  let g:tagbar_left = 1
+  let g:tagbar_autofocus = 1
+  nnoremap T :TagbarToggle<CR>
+if has('nvim')
+    augroup tagbar_setup
+        autocmd!
+        autocmd FileType tagbar setlocal winhighlight=Normal:Tabline fillchars=vert:\ 
+    augroup END
+endif
 Plug 'junegunn/vim-slash'
 Plug 'christoomey/vim-tmux-navigator'
 
+
+Plug 'sheerun/vim-polyglot'
 " Python
-Plug 'vim-python/python-syntax'
-Plug 'dccmx/google-style.vim'
-" FIXME: Kinda slow...
-" Plug 'python-mode/python-mode', { 'branch': 'develop' }
+" Plug 'vim-python/python-syntax'
+" Plug 'dccmx/google-style.vim'
 
 " Golang
-Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
+" Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
 
 " C/C++
-Plug 'octol/vim-cpp-enhanced-highlight'
+" Plug 'octol/vim-cpp-enhanced-highlight'
 
 
 " NOTE: Figure out how to lazy load
 " Plug 'vimwiki/vimwiki', { 'branch': 'dev'}
-Plug 'mrk21/yaml-vim'
-Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
-" Basically IDE
-Plug 'ludovicchabant/vim-gutentags'
-Plug 'ervandew/supertab'
+" Plug 'mrk21/yaml-vim'
+" Plug 'gabrielelana/vim-markdown'
+" Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
 
-" Testing
-" Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+" Basically IDE
+" Plug 'ludovicchabant/vim-gutentags'
+
 
 " Lint
-Plug 'w0rp/ale'
-  let g:ale_lint_delay = 1000
-  nmap ]a <Plug>(ale_next_wrap)
-  nmap [a <Plug>(ale_previous_wrap)
-Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
+" Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
 " Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 
 call plug#end()
@@ -122,19 +161,60 @@ if has('termguicolors') && $TERM_PROGRAM != "Apple_Terminal"
   let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
 endif
 
+if has('nvim-0.5')
+lua << EOF
+    local nvim_lsp = require 'nvim_lsp'
+    do
+        local method = 'textDocument/publishDiagnostics'
+        local default_callback = vim.lsp.callbacks[method]
+        vim.lsp.callbacks[method] = function(err, method, result, client_id)
+        if not result then return end
+            local uri = result.uri
+            local bufnr = vim.uri_to_bufnr(uri)
+            if not bufnr then
+                err_message("LSP.publishDiagnostics: Couldn't find buffer for ", uri)
+                return
+            end
+            vim.lsp.util.buf_clear_diagnostics(bufnr)
+            vim.lsp.util.buf_diagnostics_save_positions(bufnr, result.diagnostics)
+            vim.lsp.util.buf_diagnostics_underline(bufnr, result.diagnostics)
+        end
+        nvim_lsp.pyls_ms.setup{
+            root_dir = nvim_lsp.util.root_pattern('.git', ".");
+        }
+    end
+EOF
+
+    augroup LSP
+        autocmd!
+        autocmd FileType python setlocal omnifunc=v:lua.vim.lsp.omnifunc
+        autocmd FileType python autocmd CursorHold <buffer> lua vim.lsp.util.show_line_diagnostics()
+        autocmd FileType python autocmd CursorMoved <buffer> lua vim.lsp.util.show_line_diagnostics()
+        autocmd FileType python nnoremap <silent> gd    <cmd>lua vim.lsp.buf.declaration()<CR>
+        autocmd FileType python nnoremap <silent> <c-]> <cmd>lua vim.lsp.buf.definition()<CR>
+        autocmd FileType python nnoremap <silent> gr    <cmd>lua vim.lsp.buf.references()<CR>
+        autocmd FileType python nnoremap <silent> K     <cmd>lua vim.lsp.buf.hover()<CR>
+        autocmd FileType python nnoremap <silent> gD    <cmd>lua vim.lsp.buf.implementation()<CR>
+        autocmd FileType python nnoremap <silent> <c-k> <cmd>lua vim.lsp.buf.signature_help()<CR>
+        autocmd FileType python nnoremap <silent> 1gD   <cmd>lua vim.lsp.buf.type_definition()<CR>
+        autocmd FileType python nnoremap <silent> g0    <cmd>lua vim.lsp.buf.document_symbol()<CR>
+    augroup END
+endif
+
+" let g:coc_global_extensions = ['coc-python']
+" 
+" augroup coc-config
+"   autocmd!
+"   autocmd VimEnter * nmap <silent> gd <Plug>(coc-definition)
+"   autocmd VimEnter * nmap <silent> g? <Plug>(coc-references)
+" augroup END
+
 
 " Plugin's settings {{{
 let g:gruvbox_contrast_dark = 'soft'
 
 let g:gutentags_cache_dir='~/.cache/tags'
 
-let g:netrw_banner = 0
-let g:netrw_liststyle = 0
-let g:netrw_browse_split = 0
-let g:netrw_altv = 1
-let g:netrw_winsize = -25
-let g:netrw_keepdir = 0
-let g:netrw_sort_sequence = '[\/]$,*'
 
 " let g:ale_set_highlights = 0
 " let g:ale_sign_column_always = 1
@@ -143,8 +223,6 @@ let g:netrw_sort_sequence = '[\/]$,*'
 " let g:ale_sign_warning = '•'
 " let g:ale_echo_msg_error_str =  '✹ Error'
 " let g:ale_echo_msg_warning_str = '⚠ Warning'
-
-let g:python_highlight_all = 1
 
 let g:SuperTabDefaultCompletionType = "<c-n>"
 
@@ -206,10 +284,20 @@ let &statusline = s:statusline_expr()
 " silent! colorscheme nord
 
 " Highlight diff language input cursor with other color
-highlight lCursor guifg=NONE guibg=Cyan
 " }}}
 
 " Basic settings {{{
+
+
+set completeopt-=preview
+
+" No need in Import when tags completion used
+" set complete-=i
+
+
+" Title for timetracking
+set title
+" set titlestring=%t
 
 set nostartofline
 
@@ -247,9 +335,6 @@ set directory=/tmp//,.
 set undodir=/tmp//,.
 
 set clipboard=unnamed
-set completeopt=menuone,preview
-" No need in Import when tags completion used
-set complete-=i
 
 set textwidth=0
 " This is a good half screen limit for any file
@@ -280,11 +365,11 @@ set wildmenu wildmode=full
 
 set shortmess=aIT
 
-set ttyfast
 set lazyredraw
+
 if !has('nvim')
-  set ttymouse=xterm2
-  set ttyscroll=3
+    " TTY settings for Vim only.
+  set ttyfast ttymouse=xterm2 ttyscroll=3
 endif
 
 set mouse=a
@@ -297,40 +382,25 @@ set splitbelow
 set modelines=2
 set synmaxcol=1000
 
+" Disable audible bell because it's annoying.
 set noerrorbells visualbell t_vb=
-
-hi! link cppStructure cppStatement
 " }}}
 
 " Autocmd {{{
 augroup vimrc
     autocmd!
-    autocmd FileType python,rst,c,cpp highlight Excess ctermbg=DarkGrey guibg=Black
-    autocmd FileType python,rst,c,cpp match Excess /\%81v.*/
-    autocmd GUIEnter * set visualbell t_vb=
-    autocmd FocusLost * if expand('%') != '' | update | endif
-    autocmd BufWritePost _vimrc,.vimrc source %
+    " Autosave changes, convenient.
+    autocmd TextChanged,InsertLeave <buffer>
+          \  if empty(&buftype) && !empty(bufname(''))
+          \|   silent! update
+          \| endif
+    " Autosource vimrc if saved.
+    autocmd BufWritePost $MYVIMRC source %
 augroup END
-
-augroup pythonrc
-    autocmd!
-    autocmd FileType python setlocal indentexpr=GetGooglePythonIndent(v:lnum)
-augroup END
-
-fun! s:pysearch(pattern)
-    execute 'vimgrep ' . a:pattern . ' ./**/*.py'
-endfun
-command! -nargs=1 Pysearch call s:pysearch(<f-args>)
-
-nmap <silent> g/ :FlyGrep<CR>
-nmap <silent> <leader>* :noautocmd vimgrep <cword> ./**/*<CR>
-
 " }}}
 
 " Mappings {{{
 nnoremap Q @q
-
-nmap <silent> <leader>/ :nohlsearch<CR>
 map Y y$
 
 nnoremap <leader>ev :e $MYVIMRC<cr>
@@ -351,33 +421,11 @@ nnoremap <leader>3 m`^i### <esc>``4l
 nnoremap <leader>4 m`^i#### <esc>``5l
 nnoremap <leader>5 m`^i##### <esc>``6l
 
-nnoremap <leader><leader> :Files<CR>
+nnoremap <leader>vs :50Vex!<CR>
+vnoremap <leader>da :<C-U>1,'<-1:delete<CR>:'>+1,$:delete<CR>
 
-nnoremap <F3> :50Vex!<CR>
-vnoremap <F4> :<C-U>1,'<-1:delete<CR>:'>+1,$:delete<CR>
-nnoremap <F10> :Goyo<CR>
-
-" Open new line below and above current line
-nnoremap <leader>o o<esc>
-nnoremap <leader>O O<esc>
-
-" Save
-inoremap <C-s>     <C-O>:update<cr>
-nnoremap <C-s>     :update<cr>
-nnoremap <leader>s :update<cr>
-nnoremap <leader>w :update<cr>
 " Allow saving of files as sudo when I forgot to start vim using sudo.
 cmap w!! w !sudo tee > /dev/null %
-
-" Quit
-inoremap <C-Q>     <esc>:q<cr>
-nnoremap <C-Q>     :q<cr>
-vnoremap <C-Q>     <esc>
-nnoremap <Leader>q :q<cr>
-nnoremap <Leader>Q :qa!<cr>
-
-nnoremap [e :ALEPrevious<cr>
-nnoremap ]e :ALENext<cr>
 
 nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
@@ -385,84 +433,16 @@ nnoremap <C-L> <C-W><C-L>
 nnoremap <C-H> <C-W><C-H>
 inoremap <C-U> <C-G>u<C-U>
 
-function! s:colors(...)
-  return filter(map(filter(split(globpath(&rtp, 'colors/*.vim'), "\n"),
-        \                  'v:val !~ "^/usr/"'),
-        \           'fnamemodify(v:val, ":t:r")'),
-        \       '!a:0 || stridx(v:val, a:1) >= 0')
-endfunction
-
-function! s:rotate_colors()
-  if !exists('s:colors')
-    let s:colors = s:colors()
-  endif
-  let name = remove(s:colors, 0)
-  call add(s:colors, name)
-  execute 'colorscheme' name
-  redraw
-  echo name
-endfunction
-
-nnoremap <silent> <F8> :call <SID>rotate_colors()<cr>
-
-fun! s:ctoogle()
-    if empty(filter(getwininfo(), 'v:val.quickfix && !v:val.loclist'))
-        copen
-    else
-        cclose
-    endif
-endfun
-command! Ctoogle call s:ctoogle()
-
-fun! s:ltoogle()
-    if empty(filter(getwininfo(), 'v:val.quickfix && v:val.loclist'))
-        lopen
-    else
-        lclose
-    endif
-endfun
-command! Ltoogle call s:ltoogle()
-
 function! s:profile(bang)
   if a:bang
     profile pause
     noautocmd qall
   else
-    profile start /tmp/profile.log
+    profile start vim-profile.log
     profile func *
     profile file *
   endif
 endfunction
 command! -bang Profile call s:profile(<bang>0)
-
-" Likewise, Files command with preview window
-command! -bang -nargs=? -complete=dir Files
-  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
-
-" ----------------------------------------------------------------------------
-" AutoSave
-" ----------------------------------------------------------------------------
-function! s:autosave(enable)
-  augroup autosave
-    autocmd!
-    if a:enable
-      autocmd TextChanged,InsertLeave <buffer>
-            \  if empty(&buftype) && !empty(bufname(''))
-            \|   silent! update
-            \| endif
-    endif
-  augroup END
-endfunction
-
-command! -bang AutoSave call s:autosave(<bang>1)
-
-" Convenient command to see the difference between the current buffer and the
-" file it was loaded from, thus the changes you made.
-" Only define it when not defined already.
-" Revert with: ":delcommand DiffOrig".
-if !exists(":DiffOrig")
-  command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
-    \ | wincmd p | diffthis
-endif
 " }}}
 
