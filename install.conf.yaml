@@ -1,0 +1,16 @@
+- defaults:
+    link:
+      create: true
+      relink: true
+
+- clean: ['~']
+
+- link:
+    ~/.config/nvim/init.vim:
+        create: true
+        path: vim/vimrc
+    ~/.vimrc: vim/vimrc
+    ~/.zshrc: zsh/zshrc
+    ~/.bashrc: bash/bashrc
+    ~/.ideavimrc: idea/ideavimrc
+    ~/.tmux.conf: tmux/tmux.conf
