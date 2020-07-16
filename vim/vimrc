@@ -1,100 +1,217 @@
-" vim: set foldmethod=marker foldlevel=99 nomodeline:
-" Author: Nikita Slepogin
-" Date: 01.04.2017
+" vim: set foldmethod=marker foldlevel=0 nomodeline:
 
-" Where is a bug in Windows.
-" If you change encoding to UTF8 you should repopulate runtimepath.
-" language C
-" set encoding=utf-8
-set runtimepath=$HOME/.vim,$VIMRUNTIME
-
+" .vimrc of Nikita Slepogin {{{
 " Normally `:set nocp` is not needed, because it is done automatically
 if &compatible
-  " `:set nocp` has many side effects. Therefore this should be done
-  " only when 'compatible' is set.
   set nocompatible
 endif
 
-let g:python_host_prog = expand('~/.pyenv/versions/2.7.17/envs/neovim2.7/bin/python')
-let g:python3_host_prog = expand('~/.pyenv/versions/3.6.6/envs/neovim/bin/python')
-
-if empty(glob('~/.vim/autoload/plug.vim'))
-  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-        \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+if has('nvim')
+    set runtimepath^=~/.vim runtimepath+=~/.vim/after
+    let &packpath = &runtimepath
 endif
 
-let mapleader      = "\<Space>"
-let maplocalleader = "\<Space>"
+" Space leader works best for me
+let g:mapleader = "\<Space>"
+let g:maplocalleader = "\<Space>"
 
-set formatoptions+=r
-set formatoptions-=o
-set signcolumn=yes
+let g:neovim2_venv=expand('~/venvs/neovim2/bin/python')
+let g:neovim3_venv=expand('~/venvs/neovim3/bin/python')
+let g:plugins_location=expand('~/.config/nvim/plugged')
 
-" let g:loaded_matchit = 1 " Don't need it
-" let g:loaded_gzip = 1 " Gzip is pointless
-" let g:loaded_zipPlugin = 1 " zip is also pointless
-" let g:loaded_logipat = 1 " No logs
-" let g:loaded_2html_plugin = 1 " Disable 2html
-" let g:loaded_rrhelper = 1 " I don't use r
-" let g:loaded_getscriptPlugin = 1 " Dont need it
-" let g:loaded_tarPlugin = 1 " Nope
+augroup vimrc
+    autocmd!
+augroup END
+
+if !empty(glob(g:neovim2_venv))
+    let g:python_host_prog=g:neovim2_venv
+endif
+
+if !empty(glob(g:neovim3_venv))
+    let g:python3_host_prog=g:neovim3_venv
+endif
+
+if !filereadable(expand('~/.vim/autoload/plug.vim'))
+    execute '!curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+endif
+" }}}
 
 " VIM-PLUG Plugins {{{
 
-silent! if plug#begin('~/.vim/plugged')
-" Colors
-" Plug 'morhetz/gruvbox'
-" Plug 'chriskempson/base16-vim'
-Plug 'arcticicestudio/nord-vim'
-
-" Git
-
-Plug 'machakann/vim-sandwich'
-" Plug 'airblade/vim-gitgutter'
-Plug 'mhinz/vim-signify'
-let g:signify_vcs_list = ['git']
-Plug 'tpope/vim-fugitive'
-"   nmap     <Leader>g :Gstatus<CR>gg<c-n>
-"   nnoremap <Leader>d :Gdiff<CR>
-
-" Edit
-Plug 'tpope/vim-commentary'
-" xmap  <c-\/>  <Plug>Commentary
-" nmap  <c-\/>  <Plug>CommentaryLine
-Plug 'mbbill/undotree', { 'on': 'UndotreeToggle' }
-let g:undotree_WindowLayout = 2
-nnoremap U :UndotreeToggle<CR>
-Plug 'Yggdroot/indentLine', { 'on': 'IndentLinesEnable' }
-autocmd! User indentLine doautocmd indentLine Syntax
-let g:indentLine_color_term = 239
-let g:indentLine_color_gui = '#616161'
+silent! if plug#begin(g:plugins_location)
+Plug 'arcticicestudio/nord-vim' " Awesome Arctic theme
+Plug 'mhinz/vim-signify' " Git changes in signcolumn
+Plug 'tpope/vim-fugitive' " Git integration like Blame, Commit etc.
+Plug 'tpope/vim-commentary' " Commenting helper (gcc gcu)
+Plug 'Yggdroot/indentLine', { 'on': 'IndentLinesEnable' } " Indent lines when needed
 Plug 'vim-scripts/ReplaceWithRegister'
 Plug 'jiangmiao/auto-pairs'
-Plug 'junegunn/goyo.vim'
-
-" Navigate and complete
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Awesome fuzzy searcher
+Plug 'junegunn/fzf.vim' " Vim integration for fzf
+Plug 'junegunn/goyo.vim' " Distraction free mode like in iaWriter
+Plug 'junegunn/vim-slash'
 Plug 'justinmk/vim-gtfo'
+Plug 'preservim/nerdtree'
+Plug 'majutsushi/tagbar', { 'on': 'TagbarToggle' }
+Plug 'mbbill/undotree', { 'on': 'UndotreeToggle' } " Awesome undo changes viewer
+Plug 'christoomey/vim-tmux-navigator'
+Plug 'sheerun/vim-polyglot'
+Plug 'vimwiki/vimwiki', { 'branch': 'dev'}
+Plug 'machakann/vim-sandwich'
+if has('nvim-0.5')
+  Plug 'neovim/nvim-lsp'
+  Plug 'lifepillar/vim-mucomplete'
+endif
+
+" signify {{{
+set updatetime=100
+" }}}
+
+" undotree {{{
+let g:undotree_WindowLayout = 3
+let g:undotree_SplitWidth = 35
+let g:undotree_DiffpanelHeight = 10
+nnoremap U :UndotreeToggle<CR>
+" }}}
+
+" indentLine {{{
+let g:indentLine_leadingSpaceEnabled = 0
+let g:indentLine_concealcursor = 'inc'
+let g:indentLine_conceallevel = 2
+let g:indentLine_char = '▏'  " ¦┆│⎸▏
+let g:indent_blankline_char = g:indentLine_char
+let g:indentLine_leadingSpaceChar = '·'
+let g:indentLine_setColors = 0  " disable overwrite with grey by default, use colorscheme instead
+autocmd! User indentLine doautocmd indentLine Syntax
+" }}}
+
+" netrw {{{
 let g:netrw_banner = 0
 let g:netrw_liststyle = 3
 let g:netrw_browse_split = 0
 let g:netrw_winsize = -25
 let g:netrw_sort_sequence = '[\/]$,*'
 let g:netrw_list_hide='.*\.git/$,'.netrw_gitignore#Hide()
-nnoremap <silent> - :Explore<cr>
 if has('nvim')
   augroup netrw_setup
     autocmd!
     autocmd FileType netrw setl bufhidden=wipe
-    autocmd FileType netrw nnoremap <buffer> Q :Rexplore<CR>
+    autocmd FileType netrw nnoremap <buffer> q :Rexplore<CR>
   augroup END
 endif
+" }}}
+
+" NERDTree {{{
+let g:NERDTreeShowBookmarks=1
+let g:NERDTreeIgnore=['\.py[cd]$', '\~$', '^\.git$']
+let g:NERDTreeChDirMode=0
+let g:NERDTreeQuitOnOpen=0
+let g:NERDTreeMouseMode=2
+let g:NERDTreeShowHidden=1
+let g:NERDTreeKeepTreeInNewTab=1
+let g:NERDTreeWinSize = 35
+let g:NERDTreeDirArrowExpandable = "\u00a0"
+let g:NERDTreeDirArrowCollapsible = "\u00a0"
+let g:nerdtree_tabs_open_on_gui_startup=0
+nnoremap <silent> - :NERDTreeToggle<cr>
+" }}}
+
+" tagbar {{{
+let g:tagbar_sort = 1
+let g:tagbar_left = 1
+let g:tagbar_autofocus = 1
+nnoremap T :TagbarToggle<CR>
+" }}}
+
+" vimwiki {{{
+let g:vimwiki_list = [{'path': '~/Documents/Notes',
+      \'syntax': 'markdown', 'ext': '.md', 'index': '.index',
+      \'diary_rel_path': 'Journal/', 'diary_index': '.index'}]
+" }}}
+
+" persistent_undo {{{
+if has("persistent_undo")
+  let &undodir=expand("~/.config/nvim/undo")
+  " Only user should be alowed to undo history.
+  if !isdirectory(&undodir) | call mkdir(&undodir, "p", 0700) | endif
+  " With autosaves and undo no need in swap and backup.
+  set nobackup noswapfile undofile
+  " Autosave buffers on change.
+  augroup autosave
+    autocmd!
+    autocmd TextChanged,InsertLeave *
+          \ if empty(&buftype) && !empty(bufname('')) |
+          \   silent! update |
+          \ endif
+  augroup END
+endif
+" }}}
+
+" statusline {{{
+function! s:statusline_expr()
+  let mod = "%{&modified ? '[+] ' : !&modifiable ? '[x] ' : ''}"
+  let ro  = "%{&readonly ? '[RO] ' : ''}"
+  let ft  = "%{len(&filetype) ? '['.&filetype.'] ' : ''}"
+  let fug = "%{exists('g:loaded_fugitive') ? fugitive#statusline() : ''}"
+  " let lsp = "%{exists('lsp_attached') ? '[LSP:on] ' : ''}"
+  let sep = ' %= '
+  let venv = "%{!empty($VIRTUAL_ENV) ? fnamemodify($VIRTUAL_ENV, ':t') : ''}"
+  let pos = ' %-12(%l : %c%V%) '
+  let pct = ' %P'
+  return '[%n] %f %<'.mod.ro.ft.fug.sep.venv.pos.'%*'.pct
+endfunction
+let &statusline = s:statusline_expr()
+" }}}
+
+" fzf {{{
+" Using floating windows of Neovim to start fzf
+if has('nvim')
+  function! FloatingFZF(width, height, border_highlight)
+    function! s:create_float(hl, opts)
+      let buf = nvim_create_buf(v:false, v:true)
+      let opts = extend({'relative': 'editor', 'style': 'minimal'}, a:opts)
+      let win = nvim_open_win(buf, v:true, opts)
+      call setwinvar(win, '&winhighlight', 'NormalFloat:'.a:hl)
+      call setwinvar(win, '&colorcolumn', '')
+      return buf
+    endfunction
+
+    " Size and position
+    let width = float2nr(&columns * a:width)
+    let height = float2nr(&lines * a:height)
+    let row = float2nr((&lines - height) / 2)
+    let col = float2nr((&columns - width) / 2)
+
+    " Border
+    let top = '╭' . repeat('─', width - 2) . '╮'
+    let mid = '│' . repeat(' ', width - 2) . '│'
+    let bot = '╰' . repeat('─', width - 2) . '╯'
+    let border = [top] + repeat([mid], height - 2) + [bot]
+
+    " Draw frame
+    let s:frame = s:create_float(a:border_highlight, {'row': row, 'col': col, 'width': width, 'height': height})
+    call nvim_buf_set_lines(s:frame, 0, -1, v:true, border)
+
+    " Draw viewport
+    call s:create_float('Normal', {'row': row + 1, 'col': col + 2, 'width': width - 4, 'height': height - 2})
+    autocmd BufWipeout <buffer> execute 'bwipeout' s:frame
+  endfunction
+
+  let g:fzf_layout = { 'window': 'call FloatingFZF(0.9, 0.6, "Comment")' }
+endif
+
+" Hide statusline
+if has('nvim') && !exists('g:fzf_layout')
+  autocmd! FileType fzf
+  autocmd  FileType fzf set laststatus=0 noshowmode noruler
+    \| autocmd BufLeave <buffer> set laststatus=2 showmode ruler
+endif
+
+nnoremap <leader><leader> :Files<CR>
+" }}}
+
 
 if has('nvim-0.5')
-  Plug 'neovim/nvim-lsp'
-  Plug 'lifepillar/vim-mucomplete'
   set completeopt-=preview
   set completeopt+=menuone,noselect
   let g:mucomplete#enable_auto_at_startup = 1
@@ -111,69 +228,90 @@ if has('nvim-0.5')
   " nmap [a <Plug>(ale_previous_wrap)
 endif
 
-Plug 'majutsushi/tagbar', { 'on': 'TagbarToggle' }
-let g:tagbar_sort = 1
-let g:tagbar_left = 1
-let g:tagbar_autofocus = 1
-nnoremap T :TagbarToggle<CR>
-if has('nvim')
-  augroup tagbar_setup
-    autocmd!
-    autocmd FileType tagbar,netrw setlocal winhighlight=Normal:Tabline fillchars=vert:\ 
-    autocmd FileType tagbar,netrw set signcolumn=no
-  augroup END
-endif
-Plug 'junegunn/vim-slash'
-Plug 'christoomey/vim-tmux-navigator'
-
-
-Plug 'sheerun/vim-polyglot'
-" Python
-" Plug 'vim-python/python-syntax'
-" Plug 'dccmx/google-style.vim'
 
 " Golang
 " Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
-
-" C/C++
-" Plug 'octol/vim-cpp-enhanced-highlight'
-
-
 " NOTE: Figure out how to lazy load
-Plug 'vimwiki/vimwiki', { 'branch': 'dev'}
 " Plug 'mrk21/yaml-vim'
 " Plug 'gabrielelana/vim-markdown'
 " Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
-
-
 " Basically IDE
 " Plug 'ludovicchabant/vim-gutentags'
-
-
 " Lint
 " Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
 " Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-
 call plug#end()
 endif
+
 " }}}
 
-" syntax on " NOTE: Already in defaults
-" set background=dark
-" NOTE: Setting background or syntax after color results in twice sourcing
-silent! colorscheme nord
-
-" Basic settings {{{
-
+" UI Settings {{{
 " Don't use termguicolors with Terminal.app
 if has('termguicolors') && $TERM_PROGRAM != "Apple_Terminal"
   set termguicolors
-  let &t_8f = "\<Esc>[38;2;%lu;%lu;%lum"
-  let &t_8b = "\<Esc>[48;2;%lu;%lu;%lum"
 endif
 
-" Faster update for different plugins
-set updatetime=300
+if has('gui_running')
+  set guioptions=a
+endif
+
+" Theme Nord {{{
+let g:nord_italic = 1
+let g:nord_underline = 1
+let g:nord_italic_comments = 1
+let g:nord_uniform_status_lines = 1
+let g:nord_uniform_diff_background = 1
+" NOTE: 'syntax on' and 'set background=dark' are defaults
+"   Also setting background or syntax after color results in second sourcing
+silent! colorscheme nord
+hi Conceal guifg=#888888 ctermfg=9 guibg=NONE ctermbg=10 gui=NONE cterm=NONE
+" }}}
+
+" Enable transparency
+highlight Normal ctermbg=none
+highlight NonText ctermbg=none
+
+set number                                      " Line numbers are on
+set showmatch                                   " Show matching brackets/parenthesis
+set incsearch                                   " Find as you type search
+set ignorecase                                  " Case insensitive search
+set smartcase                                   " Case sensitive when uc present
+set wildmenu                                    " Show a list of completions for commands
+set wildmode=list:longest,full                  " Command <Tab> completion, list matches,then longest part, then all.
+set whichwrap=b,s,h,l,<,>,[,]                   " Backspace and cursor keys wrap too
+set scrolljump=5                                " Lines to scroll when cursor leaves screen
+set scrolloff=3                                 " Minimum lines to keep above/below cursor
+set list
+set listchars=tab:›\ ,trail:•,extends:#,nbsp:.  " Highlight problematic whitespace
+set foldmethod=indent
+set foldlevelstart=99
+set noerrorbells visualbell t_vb=               " Disable the annoying bells
+set splitbelow
+set splitright
+set showmode        " Display the current mode
+
+" tnoremap <Esc> <C-\><C-n>
+if has('nvim')
+  au TermOpen * setlocal nonumber norelativenumber
+  set inccommand=split
+endif
+autocmd vimrc FileType python let &colorcolumn=80
+" }}}
+
+" Basic settings {{{
+
+set formatoptions+=r
+set formatoptions-=o
+set signcolumn=yes
+
+" let g:loaded_matchit = 1 " Don't need it
+" let g:loaded_gzip = 1 " Gzip is pointless
+" let g:loaded_zipPlugin = 1 " zip is also pointless
+" let g:loaded_logipat = 1 " No logs
+" let g:loaded_2html_plugin = 1 " Disable 2html
+" let g:loaded_rrhelper = 1 " I don't use r
+" let g:loaded_getscriptPlugin = 1 " Dont need it
+" let g:loaded_tarPlugin = 1 " Nope
 
 " How to check LSP enabled
 " if luaeval('vim.lsp.buf.server_ready()')
@@ -192,7 +330,6 @@ let g:gruvbox_contrast_dark = 'soft'
 
 let g:gutentags_cache_dir='~/.cache/tags'
 
-
 " let g:ale_set_highlights = 0
 " let g:ale_sign_column_always = 1
 " let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
@@ -204,86 +341,15 @@ let g:gutentags_cache_dir='~/.cache/tags'
 " let g:SuperTabDefaultCompletionType = "<c-n>"
 let g:SuperTabDefaultCompletionType = "<c-x><c-o>"
 
-let g:vimwiki_list = [{'path': '~/Documents/Notes',
-      \'syntax': 'markdown', 'ext': '.md', 'index': '.index',
-      \'diary_rel_path': 'Journal/', 'diary_index': '.index'}]
-
-let g:fzf_colors = {
-      \ 'fg':      ['fg', 'GruvboxGray'],
-      \ 'bg':      ['bg', 'Normal'],
-      \ 'hl':      ['fg', 'GruvboxRed'],
-      \ 'fg+':     ['fg', 'GruvboxGreen'],
-      \ 'bg+':     ['bg', 'GruvboxBg1'],
-      \ 'hl+':     ['fg', 'GruvboxRed'],
-      \ 'info':    ['fg', 'GruvboxOrange'],
-      \ 'prompt':  ['fg', 'GruvboxBlue'],
-      \ 'header':  ['fg', 'GruvboxBlue'],
-      \ 'pointer': ['fg', 'Error'],
-      \ 'marker':  ['fg', 'Error'],
-      \ 'spinner': ['fg', 'Statement'],
-      \ }
-" }}}
-
-" Interface settings {{{
-if has('gui_running')
-  set guioptions=a
-  if has('win32')
-    set guifont=Input_Mono:h14,Consolas:h14
-  else
-    set guifont=Input\ Mono\ 12,Monospace\ 12
-  endif
-endif
-
-" Settings for ConEmu (Windows Term Emulator)
-if !empty($CONEMUBUILD)
-  set term=pcansi
-  set t_Co=256
-  let &t_AB="\e[48;5;%dm"
-  let &t_AF="\e[38;5;%dm"
-endif
-
-
-function! s:statusline_expr()
-  let mod = "%{&modified ? '[+] ' : !&modifiable ? '[x] ' : ''}"
-  let ro  = "%{&readonly ? '[RO] ' : ''}"
-  let ft  = "%{len(&filetype) ? '['.&filetype.'] ' : ''}"
-  let fug = "%{exists('g:loaded_fugitive') ? fugitive#statusline() : ''}"
-  " let lsp = "%{exists('lsp_attached') ? '[LSP:on] ' : ''}"
-  let sep = ' %= '
-  let venv = "%{!empty($VIRTUAL_ENV) ? fnamemodify($VIRTUAL_ENV, ':t') : ''}"
-  let pos = ' %-12(%l : %c%V%) '
-  let pct = ' %P'
-
-  return '[%n] %f %<'.mod.ro.ft.fug.sep.venv.pos.'%*'.pct
-endfunction
-let &statusline = s:statusline_expr()
-
-
-" syntax on " NOTE: Already in defaults
-" set background=dark
-" NOTE: Setting background or syntax after color results in twice sourcing
-" silent! colorscheme nord
-
-" Highlight diff language input cursor with other color
 " }}}
 
 " Basic settings {{{
 
-
 " No need in Import when tags completion used
 " set complete-=i
 
-
-" Title for timetracking
-set title
-" set titlestring=%t
-
+set title " Title for timetracking
 set nostartofline
-
-set foldenable
-set foldlevelstart=10
-set foldnestmax=10
-set foldmethod=syntax
 
 set keymap=russian-jcukenwin
 set langmap=ФИСВУАПРШОЛДЬТЩЗЙКЫЕГМЦЧНЯ;ABCDEFGHIJKLMNOPQRSTUVWXYZ,фисвуапршолдьтщзйкыегмцчня;abcdefghijklmnopqrstuvwxyz
@@ -293,45 +359,20 @@ set spelllang=ru_ru,en_us
 
 set fileformats=unix,dos,mac
 set modeline
-set number
-set ruler
 
 set timeoutlen=500
 
 " Tab settings
-" set tabstop=2
-set softtabstop=2 shiftwidth=2 expandtab
+set tabstop=4 softtabstop=2 shiftwidth=2 expandtab smarttab
 set autoindent smartindent
 set showcmd
-set virtualedit=block
+set virtualedit=onemore
 
 set cursorline
-set showmatch
 
-" Enable persistent undo and autosave on changes.
-if has("persistent_undo")
-  let &undodir=expand("~/.config/nvim/undo")
-  " Only user should be alowed to undo history.
-  if !isdirectory(&undodir) | call mkdir(&undodir, "p", 0700) | endif
-  " With autosaves and undo no need in swap and backup.
-  set nobackup noswapfile undofile
-  " Autosave buffers on change.
-  augroup autosave
-    autocmd!
-    autocmd TextChanged,InsertLeave *
-          \ if empty(&buftype) && !empty(bufname('')) |
-          \   silent! update |
-          \ endif
-  augroup END
-endif
-
-" Open last edited.
-
-set clipboard=unnamed
+set clipboard+=unnamed
 
 set textwidth=0
-" This is a good half screen limit for any file
-set colorcolumn=80
 
 " Don't break a line after one-letter word.
 " Remove comment leader when joining lines
@@ -345,23 +386,15 @@ set exrc
 
 set laststatus=2
 
-set ignorecase smartcase
 set gdefault
-set incsearch
-set showmatch
 set hlsearch
 
 set backspace=indent,eol,start
-set list listchars=tab:→…,trail:•
-
-set wildmenu wildmode=full
 
 set shortmess=aIT
 
-" set lazyredraw
-
+" TTY settings for Vim only.
 if !has('nvim')
-  " TTY settings for Vim only.
   set ttyfast ttymouse=xterm2 ttyscroll=3
 endif
 
@@ -369,14 +402,7 @@ set mouse=a
 set autoread
 set hidden
 
-set splitright
-set splitbelow
-
 set modelines=2
-set synmaxcol=1000
-
-" Disable audible bell because it's annoying.
-set noerrorbells visualbell t_vb=
 " }}}
 
 " Autocmd {{{
@@ -423,10 +449,8 @@ nnoremap <leader>v V`]
 
 nnoremap <C-p> :GFiles<CR>
 nnoremap <leader>b :Buffers<CR>
-nnoremap <leader><leader> :Buffers<CR>
 function! s:journal(count)
   call vimwiki#diary#make_note(count)
-  " execute "normal! Go## test"
   normal! Go
   put=system('date \"+##%e %B, %A в %H:%M\"')
 endfunction
@@ -468,92 +492,88 @@ endfunction
 command! -bang Profile call s:profile(<bang>0)
 
 " }}}
-tnoremap <Esc> <C-\><C-n>
-if has('nvim')
-  au TermOpen * setlocal nonumber norelativenumber
-endif
 
-if has('nvim-0.5')
-lua << EOF
-  local nvim_lsp = require 'nvim_lsp'
-
-  local on_attach = function(client, bufnr)
-    -- require'diagnostic'.on_attach()
-    -- require'completion'.on_attach()
-    -- print(vim.inspect(client.resolved_capabilities))
-
-    -- Mappings.
-    local opts = { noremap=true, silent=true }
-    local set_keymap = vim.api.nvim_buf_set_keymap
-    set_keymap(bufnr, 'n', 'gd', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
-    set_keymap(bufnr, 'n', '<c-]>', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
-    set_keymap(bufnr, 'n', 'g?', '<cmd>lua vim.lsp.buf.references()<CR><cmd>copen<CR>', opts)
-    set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
-    set_keymap(bufnr, 'n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
-    set_keymap(bufnr, 'n', '<c-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
-    set_keymap(bufnr, 'n', '1gD', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
-    set_keymap(bufnr, 'n', 'g0', '<cmd>lua vim.lsp.buf.peek_definition()<CR>', opts)
-    set_keymap(bufnr, 'n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
-    -- Omni completion
-    vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
-  end
-  
-  local method = "textDocument/publishDiagnostics"
-  local default_callback = vim.lsp.callbacks[method]
-  vim.lsp.callbacks[method] = function(err, method, result, client_id)
-    default_callback(err, method, result, client_id)
-    if result and result.diagnostics then
-      for _, v in ipairs(result.diagnostics) do
-        v.bufnr = client_id
-        v.lnum = v.range.start.line + 1
-        v.col = v.range.start.character + 1
-        v.text = v.message
-      end
-      vim.lsp.util.set_qflist(result.diagnostics)
-    end
-  end
-
-  -- local method = 'textDocument/publishDiagnostics'
-  -- local default_callback = vim.lsp.callbacks[method]
-  -- vim.lsp.callbacks[method] = function(err, method, result, client_id)
-  -- if not result then return end
-  --   local uri = result.uri
-  --   local bufnr = vim.uri_to_bufnr(uri)
-  --   if not bufnr then
-  --     err_message("LSP.publishDiagnostics: Couldn't find buffer for ", uri)
-  --     return
-  --   end
-  --   vim.lsp.util.buf_clear_diagnostics(bufnr)
-  --   vim.lsp.util.buf_diagnostics_save_positions(bufnr, result.diagnostics)
-  --   vim.lsp.util.buf_diagnostics_underline(bufnr, result.diagnostics)
-  -- end
-
-  nvim_lsp.pyls_ms.setup{
-    on_attach = on_attach,
-    root_dir = nvim_lsp.util.root_pattern('.git', "."),
-  }
-
-  -- sign column
-  vim.api.nvim_command("sign define LspDiagnosticsErrorSign text=× texthl=LspDiagnosticsError linehl= numhl=") -- ✖
-  vim.api.nvim_command("sign define LspDiagnosticsWarningSign text=! texthl=LspDiagnosticsWarning linehl= numhl=") -- ⚠
-  vim.api.nvim_command("sign define LspDiagnosticsInformationSign text=i texthl=LspDiagnosticsInformationSign linehl= numhl=") -- ℹ
-  vim.api.nvim_command("sign define LspDiagnosticsHintSign text=› texthl=LspDiagnosticsHintSign linehl= numhl=") -- ➤
-
-  -- vim.api.nvim_command("highlight! link LspDiagnosticsError SpellBad")
-  -- vim.api.nvim_command("highlight! link LspDiagnosticsWarning SpellRare")
-  -- vim.api.nvim_command("highlight! link LspDiagnosticsInformation SpellCap")
-  -- vim.api.nvim_command("highlight! link LspDiagnosticsHint SpellLocal")
-  -- vim.api.nvim_command("highlight! link LspReferenceText Search")
-  -- vim.api.nvim_command("highlight! link LspReferenceRead Search")
-  -- vim.api.nvim_command("highlight! link LspReferenceWrite Search")
-
-  --[[
-    Logging/debugging
-    Log levels by name: "trace", "debug", "info", "warn", "error"
-    The log path should typically be ~/.local/share/nvim/vim-lsp.log
-  --]]
-  -- vim.lsp.set_log_level("info")
-  -- print(vim.lsp.get_log_path())
-EOF
-endif
+" if has('nvim-0.5')
+" lua << EOF
+"   local nvim_lsp = require 'nvim_lsp'
+" 
+"   local on_attach = function(client, bufnr)
+"     -- require'diagnostic'.on_attach()
+"     -- require'completion'.on_attach()
+"     -- print(vim.inspect(client.resolved_capabilities))
+" 
+"     -- Mappings.
+"     local opts = { noremap=true, silent=true }
+"     local set_keymap = vim.api.nvim_buf_set_keymap
+"     set_keymap(bufnr, 'n', 'gd', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
+"     set_keymap(bufnr, 'n', '<c-]>', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
+"     set_keymap(bufnr, 'n', 'g?', '<cmd>lua vim.lsp.buf.references()<CR><cmd>copen<CR>', opts)
+"     set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
+"     set_keymap(bufnr, 'n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+"     set_keymap(bufnr, 'n', '<c-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+"     set_keymap(bufnr, 'n', '1gD', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
+"     set_keymap(bufnr, 'n', 'g0', '<cmd>lua vim.lsp.buf.peek_definition()<CR>', opts)
+"     set_keymap(bufnr, 'n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
+"     -- Omni completion
+"     vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+"   end
+"   
+"   local method = "textDocument/publishDiagnostics"
+"   local default_callback = vim.lsp.callbacks[method]
+"   vim.lsp.callbacks[method] = function(err, method, result, client_id)
+"     default_callback(err, method, result, client_id)
+"     if result and result.diagnostics then
+"       for _, v in ipairs(result.diagnostics) do
+"         v.bufnr = client_id
+"         v.lnum = v.range.start.line + 1
+"         v.col = v.range.start.character + 1
+"         v.text = v.message
+"       end
+"       vim.lsp.util.set_qflist(result.diagnostics)
+"     end
+"   end
+" 
+"   -- local method = 'textDocument/publishDiagnostics'
+"   -- local default_callback = vim.lsp.callbacks[method]
+"   -- vim.lsp.callbacks[method] = function(err, method, result, client_id)
+"   -- if not result then return end
+"   --   local uri = result.uri
+"   --   local bufnr = vim.uri_to_bufnr(uri)
+"   --   if not bufnr then
+"   --     err_message("LSP.publishDiagnostics: Couldn't find buffer for ", uri)
+"   --     return
+"   --   end
+"   --   vim.lsp.util.buf_clear_diagnostics(bufnr)
+"   --   vim.lsp.util.buf_diagnostics_save_positions(bufnr, result.diagnostics)
+"   --   vim.lsp.util.buf_diagnostics_underline(bufnr, result.diagnostics)
+"   -- end
+" 
+"   nvim_lsp.pyls_ms.setup{
+"     on_attach = on_attach,
+"     root_dir = nvim_lsp.util.root_pattern('.git', "."),
+"   }
+" 
+"   -- sign column
+"   vim.api.nvim_command("sign define LspDiagnosticsErrorSign text=× texthl=LspDiagnosticsError linehl= numhl=") -- ✖
+"   vim.api.nvim_command("sign define LspDiagnosticsWarningSign text=! texthl=LspDiagnosticsWarning linehl= numhl=") -- ⚠
+"   vim.api.nvim_command("sign define LspDiagnosticsInformationSign text=i texthl=LspDiagnosticsInformationSign linehl= numhl=") -- ℹ
+"   vim.api.nvim_command("sign define LspDiagnosticsHintSign text=› texthl=LspDiagnosticsHintSign linehl= numhl=") -- ➤
+" 
+"   -- vim.api.nvim_command("highlight! link LspDiagnosticsError SpellBad")
+"   -- vim.api.nvim_command("highlight! link LspDiagnosticsWarning SpellRare")
+"   -- vim.api.nvim_command("highlight! link LspDiagnosticsInformation SpellCap")
+"   -- vim.api.nvim_command("highlight! link LspDiagnosticsHint SpellLocal")
+"   -- vim.api.nvim_command("highlight! link LspReferenceText Search")
+"   -- vim.api.nvim_command("highlight! link LspReferenceRead Search")
+"   -- vim.api.nvim_command("highlight! link LspReferenceWrite Search")
+" 
+"   --[[
+"     Logging/debugging
+"     Log levels by name: "trace", "debug", "info", "warn", "error"
+"     The log path should typically be ~/.local/share/nvim/vim-lsp.log
+"   --]]
+"   -- vim.lsp.set_log_level("info")
+"   -- print(vim.lsp.get_log_path())
+" EOF
+" endif
 
