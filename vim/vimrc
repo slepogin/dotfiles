@@ -58,9 +58,11 @@ Plug 'christoomey/vim-tmux-navigator'
 Plug 'sheerun/vim-polyglot'
 Plug 'vimwiki/vimwiki', { 'branch': 'dev'}
 Plug 'machakann/vim-sandwich'
+Plug 'ludovicchabant/vim-gutentags'
 if has('nvim-0.5')
-  Plug 'neovim/nvim-lsp'
-  Plug 'lifepillar/vim-mucomplete'
+Plug 'neovim/nvim-lsp'
+Plug 'nvim-lua/diagnostic-nvim'
+Plug 'nvim-lua/completion-nvim'
 endif
 
 " signify {{{
@@ -211,23 +213,6 @@ nnoremap <leader><leader> :Files<CR>
 " }}}
 
 
-if has('nvim-0.5')
-  set completeopt-=preview
-  set completeopt+=menuone,noselect
-  let g:mucomplete#enable_auto_at_startup = 1
-  " Plug 'prabirshrestha/asyncomplete.vim'
-  " Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
-  " Plug 'Shougo/deoplete-lsp'
-  " let g:deoplete#enable_at_startup = 1
-  " Plug 'ervandew/supertab'
-  " Plug 'w0rp/ale'
-  " let g:ale_lint_on_text_changed = 1
-  " let g:ale_lint_on_save = 1
-  " let g:ale_lint_delay = 100
-  " nmap ]a <Plug>(ale_next_wrap)
-  " nmap [a <Plug>(ale_previous_wrap)
-endif
-
 
 " Golang
 " Plug 'fatih/vim-go', { 'do': ':GoInstallBinaries' }
@@ -241,6 +226,56 @@ endif
 " Plug 'maralla/completor.vim' " NOTE: Uses JEDI already
 " Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 call plug#end()
+
+" LSP {{{
+lua << EOF
+local nvim_lsp = require 'nvim_lsp'
+local on_attach = function(client, bufnr)
+  require'completion'.on_attach()
+  require'diagnostic'.on_attach()
+
+  -- Mappings.
+  local opts = { noremap=true, silent=true }
+  local set_keymap = vim.api.nvim_buf_set_keymap
+  set_keymap(bufnr, 'n', 'gd', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
+  set_keymap(bufnr, 'n', '<c-]>', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
+  set_keymap(bufnr, 'n', 'g?', '<cmd>lua vim.lsp.buf.references()<CR><cmd>copen<CR>', opts)
+  set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
+  set_keymap(bufnr, 'n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+  set_keymap(bufnr, 'n', '<c-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+  set_keymap(bufnr, 'n', '1gD', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
+  set_keymap(bufnr, 'n', 'g0', '<cmd>lua vim.lsp.buf.peek_definition()<CR>', opts)
+  set_keymap(bufnr, 'n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
+end
+
+local servers = { 'pyls_ms', }
+for _, lsp in ipairs(servers) do
+  nvim_lsp[lsp].setup {
+    on_attach = on_attach,
+    root_dir = nvim_lsp.util.root_pattern('.git', '.'),
+  }
+end
+
+--[[
+  Logging/debugging
+  Log levels by name: "trace", "debug", "info", "warn", "error"
+  The log path should typically be ~/.local/share/nvim/vim-lsp.log
+--]]
+-- vim.lsp.set_log_level("debug")
+-- print(vim.lsp.get_log_path())
+EOF
+
+" Use <Tab> and <S-Tab> to navigate through popup menu
+inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+
+" Set completeopt to have a better completion experience
+set completeopt=menuone,noinsert,noselect
+
+" Avoid showing message extra message when using completion
+set shortmess+=c
+" }}}
+
 endif
 
 " }}}
@@ -421,10 +456,37 @@ function! SetProjectRoot()
   endif
 endfunction
 
+function! TextEnableCodeSnip(filetype,start,end,textSnipHl) abort
+  let ft=toupper(a:filetype)
+  let group='textGroup'.ft
+  if exists('b:current_syntax')
+    let s:current_syntax=b:current_syntax
+    " Remove current syntax definition, as some syntax files (e.g. cpp.vim)
+    " do nothing if b:current_syntax is defined.
+    unlet b:current_syntax
+  endif
+  execute 'syntax include @'.group.' syntax/'.a:filetype.'.vim'
+  try
+    execute 'syntax include @'.group.' after/syntax/'.a:filetype.'.vim'
+  catch
+  endtry
+  if exists('s:current_syntax')
+    let b:current_syntax=s:current_syntax
+  else
+    unlet b:current_syntax
+  endif
+  execute 'syntax region textSnip'.ft.'
+  \ matchgroup='.a:textSnipHl.'
+  \ keepend
+  \ start="'.a:start.'" end="'.a:end.'"
+  \ contains=@'.group
+endfunction
+
 augroup vimrc
   autocmd!
   " Autosource vimrc if saved.
   autocmd BufWritePost $MYVIMRC source %
+  autocmd FileType vim call TextEnableCodeSnip('lua',   'lua << EOF',   'EOF', 'SpecialComment')
   " TODO
   " autocmd BufRead * call SetProjectRoot()
   autocmd CursorMoved silent *
@@ -492,88 +554,4 @@ endfunction
 command! -bang Profile call s:profile(<bang>0)
 
 " }}}
-
-" if has('nvim-0.5')
-" lua << EOF
-"   local nvim_lsp = require 'nvim_lsp'
-" 
-"   local on_attach = function(client, bufnr)
-"     -- require'diagnostic'.on_attach()
-"     -- require'completion'.on_attach()
-"     -- print(vim.inspect(client.resolved_capabilities))
-" 
-"     -- Mappings.
-"     local opts = { noremap=true, silent=true }
-"     local set_keymap = vim.api.nvim_buf_set_keymap
-"     set_keymap(bufnr, 'n', 'gd', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
-"     set_keymap(bufnr, 'n', '<c-]>', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
-"     set_keymap(bufnr, 'n', 'g?', '<cmd>lua vim.lsp.buf.references()<CR><cmd>copen<CR>', opts)
-"     set_keymap(bufnr, 'n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
-"     set_keymap(bufnr, 'n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
-"     set_keymap(bufnr, 'n', '<c-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
-"     set_keymap(bufnr, 'n', '1gD', '<cmd>lua vim.lsp.buf.type_definition()<CR>', opts)
-"     set_keymap(bufnr, 'n', 'g0', '<cmd>lua vim.lsp.buf.peek_definition()<CR>', opts)
-"     set_keymap(bufnr, 'n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
-"     -- Omni completion
-"     vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
-"   end
-"   
-"   local method = "textDocument/publishDiagnostics"
-"   local default_callback = vim.lsp.callbacks[method]
-"   vim.lsp.callbacks[method] = function(err, method, result, client_id)
-"     default_callback(err, method, result, client_id)
-"     if result and result.diagnostics then
-"       for _, v in ipairs(result.diagnostics) do
-"         v.bufnr = client_id
-"         v.lnum = v.range.start.line + 1
-"         v.col = v.range.start.character + 1
-"         v.text = v.message
-"       end
-"       vim.lsp.util.set_qflist(result.diagnostics)
-"     end
-"   end
-" 
-"   -- local method = 'textDocument/publishDiagnostics'
-"   -- local default_callback = vim.lsp.callbacks[method]
-"   -- vim.lsp.callbacks[method] = function(err, method, result, client_id)
-"   -- if not result then return end
-"   --   local uri = result.uri
-"   --   local bufnr = vim.uri_to_bufnr(uri)
-"   --   if not bufnr then
-"   --     err_message("LSP.publishDiagnostics: Couldn't find buffer for ", uri)
-"   --     return
-"   --   end
-"   --   vim.lsp.util.buf_clear_diagnostics(bufnr)
-"   --   vim.lsp.util.buf_diagnostics_save_positions(bufnr, result.diagnostics)
-"   --   vim.lsp.util.buf_diagnostics_underline(bufnr, result.diagnostics)
-"   -- end
-" 
-"   nvim_lsp.pyls_ms.setup{
-"     on_attach = on_attach,
-"     root_dir = nvim_lsp.util.root_pattern('.git', "."),
-"   }
-" 
-"   -- sign column
-"   vim.api.nvim_command("sign define LspDiagnosticsErrorSign text=× texthl=LspDiagnosticsError linehl= numhl=") -- ✖
-"   vim.api.nvim_command("sign define LspDiagnosticsWarningSign text=! texthl=LspDiagnosticsWarning linehl= numhl=") -- ⚠
-"   vim.api.nvim_command("sign define LspDiagnosticsInformationSign text=i texthl=LspDiagnosticsInformationSign linehl= numhl=") -- ℹ
-"   vim.api.nvim_command("sign define LspDiagnosticsHintSign text=› texthl=LspDiagnosticsHintSign linehl= numhl=") -- ➤
-" 
-"   -- vim.api.nvim_command("highlight! link LspDiagnosticsError SpellBad")
-"   -- vim.api.nvim_command("highlight! link LspDiagnosticsWarning SpellRare")
-"   -- vim.api.nvim_command("highlight! link LspDiagnosticsInformation SpellCap")
-"   -- vim.api.nvim_command("highlight! link LspDiagnosticsHint SpellLocal")
-"   -- vim.api.nvim_command("highlight! link LspReferenceText Search")
-"   -- vim.api.nvim_command("highlight! link LspReferenceRead Search")
-"   -- vim.api.nvim_command("highlight! link LspReferenceWrite Search")
-" 
-"   --[[
-"     Logging/debugging
-"     Log levels by name: "trace", "debug", "info", "warn", "error"
-"     The log path should typically be ~/.local/share/nvim/vim-lsp.log
-"   --]]
-"   -- vim.lsp.set_log_level("info")
-"   -- print(vim.lsp.get_log_path())
-" EOF
-" endif
 
