@@ -1,44 +1,68 @@
-# if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
-#   exec tmux new-session -A -s main
-# fi
+# ~/.zshrc — managed by dotfiles (zsh/zshrc).
+# Machine-specific config goes in ~/.zshrc.local, sourced near the bottom.
 
-# Needed for tmux-256color config
-export TERM="xterm-256color"
+# ── path ───────────────────────────────────────────────────────
+typeset -U path                       # keep entries unique
+path=("$HOME/.local/bin" $path)
 
-fpath+=("$HOME/.zsh/pure")
+# Brew shellenv normally runs in ~/.zprofile; cover non-login shells too.
+if [[ -z ${HOMEBREW_PREFIX:-} && -x /opt/homebrew/bin/brew ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+brew_share="${HOMEBREW_PREFIX:-/opt/homebrew}/share"
 
-typeset -U path
-path=(~/.local/bin $path[@])
+# ── history ────────────────────────────────────────────────────
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=200000
+SAVEHIST=200000
+setopt EXTENDED_HISTORY      # сохранять время команды
+setopt SHARE_HISTORY         # писать сразу после команды + видеть команды из других вкладок
+setopt HIST_IGNORE_ALL_DUPS  # без дублей
+setopt HIST_IGNORE_SPACE     # команда с пробелом в начале не попадёт в историю (для секретов)
+setopt HIST_REDUCE_BLANKS
+setopt HIST_FIND_NO_DUPS
 
-autoload -U compinit promptinit
-compinit
-promptinit
-
-prompt pure
-
-zstyle ':completion:*' menu select
-zstyle ':completion:*' completer _complete
+# ── completion ─────────────────────────────────────────────────
+fpath+=("$brew_share/zsh/site-functions")
+autoload -Uz compinit && compinit
+zstyle ':completion:*' menu select    # arrow-key menu for candidates
+# case-insensitive + substring matching
 zstyle ':completion:*' matcher-list '' 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}' '+l:|=* r:|=*'
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# ── prompt (pure, via brew) ────────────────────────────────────
+autoload -U promptinit && promptinit
+prompt pure 2>/dev/null
 
-alias ls='ls -G'
-alias ll='ls -Gle'
-# alias vim=nvim
+# ── plugins (installed by the Brewfile) ────────────────────────
+[[ -f $brew_share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] &&
+  source "$brew_share/zsh-autosuggestions/zsh-autosuggestions.zsh"
 
-source "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
-source /usr/local/etc/profile.d/z.sh
-# source "/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+(( $+commands[fzf] )) && source <(fzf --zsh)   # ctrl-r history, ctrl-t files, alt-c cd
 
-# source ~/.dotfiles/z.sh
-# unalias z 2> /dev/null
-# z() {
-#   [ $# -gt 0 ] && _z "$*" && return
-#   cd "$(_z -l 2>&1 | fzf --height 40% --nth 2.. --reverse --inline-info +s --tac --query "${*##-* }" | sed 's/^[0-9,.]* *//')"
-# }
+# ── aliases ────────────────────────────────────────────────────
+alias ll='ls -lAhG'
+alias vim='nvim'
 
-if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
-if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
+# ── functions ──────────────────────────────────────────────────
+# t            — сессия tmux для текущей папки (в $HOME — выбор проекта через fzf)
+# t ~/dev/foo  — сессия для указанной папки
+t() {
+  local dir=${1:-$PWD}
+  if [[ -z $1 && $PWD == $HOME ]] && (( $+commands[fzf] )); then
+    dir=$(print -l ~/dev/*(/N) | fzf --prompt='project> ') || return
+  fi
+  dir=${dir:A}
+  local name=${${dir:t}//./_}
+  tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$dir"
+  if [[ -n $TMUX ]]; then tmux switch-client -t "=$name"
+  else tmux attach -t "=$name"; fi
+}
 
-export GOPATH="$HOME/Projects/go"
+# ── machine-local overrides (never committed) ──────────────────
+[[ -f $HOME/.zshrc.local ]] && source "$HOME/.zshrc.local"
 
+# syntax highlighting must be sourced last
+[[ -f $brew_share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] &&
+  source "$brew_share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+unset brew_share
